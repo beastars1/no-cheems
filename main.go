@@ -18,7 +18,8 @@ var (
 )
 
 var (
-	num = 10000
+	start = 0
+	end   = 10000
 )
 
 func main() {
@@ -52,7 +53,7 @@ func doResult(s string, file *os.File) {
 }
 
 func generateUrl() {
-	for i := 0; i < num; i++ {
+	for i := start; i < end; i++ {
 		url := fmt.Sprintf("http://mp4.yyhgxgy.cn:520/mfdsp/mf1.php?id=%d?_wv=xw.qq.com", i)
 		urls <- url
 	}
@@ -61,7 +62,7 @@ func generateUrl() {
 func do(url string) {
 	client := http.Client{}
 	request, _ := http.NewRequest("GET", url, nil)
-	request.Header.Add("User-Agent", "Mozilla/5.0 (Linux; Android 12; Redmi K30 Build/SKQ1.210908.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/89.0.4389.72 MQQBrowser/6.2 TBS/046011 Mobile Safari/537.36 V1_AND_SQ_8.8.85_2712_YYB_D A_8088500 QQ/8.8.85.7685 NetType/WIFI WebP/0.3.0 Pixel/1080 StatusBarHeight/96 SimpleUISwitch/0 QQTheme/1000 InMagicWin/0 StudyMode/0 CurrentMode/0 CurrentFontScale/1.0 GlobalDensityScale/0.9818182 AppId/1")
+	request.Header.Add("User-Agent", "QQ/114.514")
 	resp, err := client.Do(request)
 	if err != nil {
 		fmt.Println(err)
