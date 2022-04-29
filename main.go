@@ -43,7 +43,7 @@ func main() {
 		}
 	}()
 	<-quit
-	fmt.Println(time.Since(start))
+	fmt.Println(time.Since(start) - 3*time.Second)
 }
 
 func doResult(s string, file *os.File) {
