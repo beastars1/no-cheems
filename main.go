@@ -23,7 +23,7 @@ var (
 )
 
 func main() {
-	start := time.Now()
+	now := time.Now()
 	go generateUrl()
 	go func() {
 		file, _ := OpenFile("./urls.txt")
@@ -43,7 +43,7 @@ func main() {
 		}
 	}()
 	<-quit
-	fmt.Println(time.Since(start) - 3*time.Second)
+	fmt.Println(time.Since(now) - 3*time.Second)
 }
 
 func doResult(s string, file *os.File) {
