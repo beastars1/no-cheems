@@ -65,20 +65,20 @@ func do(url string) {
 	request.Header.Add("User-Agent", "QQ/114.514")
 	resp, err := client.Do(request)
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	strs := regexpMatch(string(body), `http:([\s\S]*?)m3u8`)
+	strs := regexpMatch(string(body), `"http([\s\S]*?)m3u8`)
 	if len(strs) > 0 {
-		result <- strs[0]
+		s := strs[0]
+		result <- s[1:]
 	}
 }
 
 func regexpMatch(text, expr string) []string {
 	reg, err := regexp.Compile(expr)
 	if err != nil {
-		fmt.Println("regexp cant compile", err)
 		return nil
 	}
 	return reg.FindStringSubmatch(text)
