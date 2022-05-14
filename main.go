@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"time"
 )
 
@@ -22,15 +23,16 @@ var (
 	end   = 10000
 )
 
+var urlMap = make(map[string]bool)
+
 func main() {
 	now := time.Now()
 	go generateUrl()
 	go func() {
-		file, _ := OpenFile("./urls.txt")
 		for {
 			select {
 			case res := <-result:
-				doResult(res, file)
+				urlMap[res] = true
 			case url := <-urls:
 				go func() {
 					limit <- 1
@@ -43,6 +45,8 @@ func main() {
 		}
 	}()
 	<-quit
+	file, _ := OpenFile("./urls-" + time.Now().Format("20060102") + ".txt")
+	write(file)
 	fmt.Println(time.Since(now) - 3*time.Second)
 }
 
@@ -50,6 +54,18 @@ func doResult(s string, file *os.File) {
 	write := bufio.NewWriter(file)
 	write.WriteString(s + "\n")
 	write.Flush()
+}
+
+func write(file *os.File) {
+	var set []string
+	for url := range urlMap {
+		set = append(set, url)
+	}
+	sort.Strings(set)
+	l := len(set)
+	for i := range set {
+		doResult(set[l-i-1], file)
+	}
 }
 
 func generateUrl() {
