@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
 	"sort"
 	"time"
 )
@@ -16,18 +15,32 @@ var (
 	limit  = make(chan int, 20)
 	result = make(chan string)
 	quit   = make(chan bool)
+	urlMap = make(map[string]bool)
 )
 
 var (
 	start = 0
-	end   = 10000
+	end   = 1000
 )
 
-var urlMap = make(map[string]bool)
+var (
+	urlBodyReMap = make(map[string]func(string))
+)
+
+func init() {
+	urlBodyReMap["http://mp4.yyhgxgy.cn:520/mfdsp/mf1.php?id=%d?_wv=xw.qq.com"] = Re1
+	urlBodyReMap["http://1162as.oss-cn-beijing.aliyuncs.com/%03d.php"] = Re2
+}
 
 func main() {
+	for format, re := range urlBodyReMap {
+		do(format, re)
+	}
+}
+
+func do(format string, re func(string)) {
 	now := time.Now()
-	go generateUrl()
+	go generateUrl(format)
 	go func() {
 		for {
 			select {
@@ -36,7 +49,7 @@ func main() {
 			case url := <-urls:
 				go func() {
 					limit <- 1
-					do(url)
+					request(url, re)
 					<-limit
 				}()
 			case <-time.After(3 * time.Second):
@@ -45,9 +58,12 @@ func main() {
 		}
 	}()
 	<-quit
-	file, _ := OpenFile("./urls-" + time.Now().Format("20060102") + ".txt")
+	file, err := OpenFile("./" + time.Now().Format("20060102-150105") + ".txt")
+	if err != nil {
+		fmt.Println(err)
+	}
 	write(file)
-	fmt.Println(time.Since(now) - 3*time.Second)
+	fmt.Println(format+":", time.Since(now)-3*time.Second)
 }
 
 func doResult(s string, file *os.File) {
@@ -57,9 +73,11 @@ func doResult(s string, file *os.File) {
 }
 
 func write(file *os.File) {
+	fmt.Println("write:" + file.Name())
 	var set []string
 	for url := range urlMap {
 		set = append(set, url)
+		delete(urlMap, url)
 	}
 	sort.Strings(set)
 	l := len(set)
@@ -68,34 +86,22 @@ func write(file *os.File) {
 	}
 }
 
-func generateUrl() {
+func generateUrl(format string) {
 	for i := start; i < end; i++ {
-		url := fmt.Sprintf("http://mp4.yyhgxgy.cn:520/mfdsp/mf1.php?id=%d?_wv=xw.qq.com", i)
+		url := fmt.Sprintf(format, i)
 		urls <- url
 	}
 }
 
-func do(url string) {
+func request(url string, re func(string)) {
 	client := http.Client{}
 	request, _ := http.NewRequest("GET", url, nil)
 	request.Header.Add("User-Agent", "QQ/114.514")
 	resp, err := client.Do(request)
-	if err != nil {
+	if err != nil || resp == nil || resp.StatusCode != 200 {
 		return
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	strs := regexpMatch(string(body), `"http([\s\S]*?)m3u8`)
-	if len(strs) > 0 {
-		s := strs[0]
-		result <- s[1:]
-	}
-}
-
-func regexpMatch(text, expr string) []string {
-	reg, err := regexp.Compile(expr)
-	if err != nil {
-		return nil
-	}
-	return reg.FindStringSubmatch(text)
+	re(string(body))
 }
